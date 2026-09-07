@@ -1,0 +1,17 @@
+# Personal health data must never be committed. `pull` writes here by default.
+renpho_data/
+*-report.html
+!examples/sample_report.html
+
+# Credentials
+.env
+credentials.env
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/

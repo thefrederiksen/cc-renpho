@@ -1,0 +1,26 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: pip install -e ".[dev]"
+      - run: pytest -q
+      # The fixture is generated, not hand-maintained. If regenerating it
+      # produces a different file, the committed one is stale.
+      - name: sample fixture is reproducible
+        run: |
+          python examples/make_sample.py
+          git diff --exit-code examples/sample_measurements.json

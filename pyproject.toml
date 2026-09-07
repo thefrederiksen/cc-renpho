@@ -1,0 +1,38 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "cc-renpho"
+version = "0.1.0"
+description = "Download and quality-check a Renpho smart scale history. Tells you which body-composition numbers were measured and which were computed from weight."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Soren Frederiksen", email = "soren@centerconsulting.com" }]
+keywords = ["renpho", "smart-scale", "health", "data-quality", "body-composition", "agent"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering :: Information Analysis",
+]
+dependencies = ["renpho-api>=0.2.0"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[project.urls]
+Homepage = "https://github.com/thefrederiksen/cc-renpho"
+Source = "https://github.com/thefrederiksen/cc-renpho"
+Issues = "https://github.com/thefrederiksen/cc-renpho/issues"
+
+[project.scripts]
+cc-renpho = "cc_renpho.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/cc_renpho"]

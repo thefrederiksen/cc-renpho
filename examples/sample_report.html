@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Renpho Data Quality Report</title>
+<style>
+  :root{
+    --ground:#EFF2F1; --surface:#FFF; --surface-2:#E4EAE9;
+    --ink:#0B1F22; --ink-soft:#4A6362; --ink-faint:#7A918F;
+    --line:#CFD9D7; --line-soft:#E1E8E7;
+    --water:#16565B; --water-bright:#2C8A87;
+    --warm:#A84E27; --warm-wash:#F6E3D8;
+    --alert:#8E2F2F;
+    --shadow:0 1px 2px rgba(11,31,34,.06),0 8px 24px -12px rgba(11,31,34,.18);
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --ground:#071618; --surface:#0E2427; --surface-2:#143034;
+      --ink:#E6EFEE; --ink-soft:#97B0AE; --ink-faint:#6A8583;
+      --line:#1E3B3E; --line-soft:#16302F;
+      --water:#4FB3AF; --water-bright:#6FD0CA;
+      --warm:#E2895B; --warm-wash:#33200F;
+      --alert:#E8817A;
+      --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -12px rgba(0,0,0,.7);
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#071618; --surface:#0E2427; --surface-2:#143034;
+    --ink:#E6EFEE; --ink-soft:#97B0AE; --ink-faint:#6A8583;
+    --line:#1E3B3E; --line-soft:#16302F;
+    --water:#4FB3AF; --water-bright:#6FD0CA;
+    --warm:#E2895B; --warm-wash:#33200F;
+    --alert:#E8817A;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -12px rgba(0,0,0,.7);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ground);color:var(--ink);
+    font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:60rem;margin:0 auto;padding:2.5rem 1.25rem 5rem;
+    display:flex;flex-direction:column;gap:2.75rem}
+  h1{font-size:clamp(1.8rem,4.5vw,2.7rem);line-height:1.1;margin:0 0 .5rem;
+    letter-spacing:-.02em;font-weight:800}
+  h2{font-size:1.35rem;margin:0 0 1rem;letter-spacing:-.01em;font-weight:700}
+  h3{font-size:1.05rem;font-weight:600;margin:0 0 .5rem;line-height:1.35}
+  p{margin:0 0 .85rem}
+  .lede{color:var(--ink-soft);font-size:1.05rem;max-width:44rem}
+  .meta{font-family:ui-monospace,Consolas,monospace;font-size:.75rem;
+    color:var(--ink-faint);text-transform:uppercase;letter-spacing:.09em;margin-bottom:.9rem}
+  .card{background:var(--surface);border:1px solid var(--line-soft);
+    border-radius:14px;padding:1.5rem;box-shadow:var(--shadow)}
+  .verdict{border-left:4px solid var(--warm);background:var(--warm-wash);
+    border-radius:0 14px 14px 0;padding:1.35rem 1.6rem}
+  .verdict p{margin:0}
+  .tiles{display:grid;gap:.85rem;grid-template-columns:repeat(auto-fit,minmax(9.5rem,1fr))}
+  .tile{background:var(--surface);border:1px solid var(--line-soft);
+    border-radius:12px;padding:1rem 1.1rem}
+  .tile .n{font-size:1.8rem;line-height:1;font-weight:800;letter-spacing:-.02em;display:block}
+  .tile .k{font-family:ui-monospace,monospace;font-size:.68rem;text-transform:uppercase;
+    letter-spacing:.08em;color:var(--ink-faint);margin-top:.45rem;display:block}
+  .tile.good .n{color:var(--water-bright)}
+  .tile.warn .n{color:var(--warm)}
+  svg{width:100%;height:auto;display:block}
+  .grid{stroke:var(--line-soft);stroke-width:1}
+  .grid-v{stroke:var(--line-soft);stroke-width:1;stroke-dasharray:3 4}
+  .ax{fill:var(--ink-faint);font-family:ui-monospace,monospace;font-size:11px}
+  .ln{fill:none;stroke:var(--water-bright);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+  .dot-measured{fill:var(--water);stroke:var(--surface);stroke-width:1.5}
+  .dot-est{fill:none;stroke:var(--water-bright);stroke-width:1.5}
+  .cov{fill:var(--water-bright)}
+  .cov-none{fill:var(--line)}
+  .legend{display:flex;gap:1.4rem;flex-wrap:wrap;font-size:.82rem;
+    color:var(--ink-soft);margin-top:.9rem}
+  .legend span{display:inline-flex;align-items:center;gap:.45rem}
+  .sw{width:11px;height:11px;border-radius:50%;display:inline-block}
+  .sw.m{background:var(--water)}
+  .sw.e{background:transparent;border:1.5px solid var(--water-bright)}
+  .findings{display:flex;flex-direction:column;gap:1rem}
+  .finding{background:var(--surface);border:1px solid var(--line-soft);
+    border-left:4px solid var(--line);border-radius:0 12px 12px 0;padding:1.2rem 1.4rem}
+  .finding.sev-high{border-left-color:var(--alert)}
+  .finding.sev-medium{border-left-color:var(--warm)}
+  .finding.sev-low{border-left-color:var(--water-bright)}
+  .sev-tag{font-family:ui-monospace,monospace;font-size:.65rem;letter-spacing:.11em;
+    color:var(--ink-faint);margin-bottom:.4rem}
+  .sev-high .sev-tag{color:var(--alert)}
+  .sev-medium .sev-tag{color:var(--warm)}
+  .obs{color:var(--ink-soft);font-size:.93rem}
+  .why{font-size:.93rem;margin-bottom:0}
+  .why .lbl{font-family:ui-monospace,monospace;font-size:.66rem;text-transform:uppercase;
+    letter-spacing:.09em;color:var(--ink-faint);display:block;margin-bottom:.15rem}
+  code{font-family:ui-monospace,monospace;font-size:.86em;background:var(--surface-2);
+    padding:.1em .38em;border-radius:4px}
+  .scroll{overflow-x:auto;border:1px solid var(--line-soft);border-radius:12px;
+    background:var(--surface)}
+  table{border-collapse:collapse;width:100%;font-size:.85rem}
+  th{text-align:left;font-family:ui-monospace,monospace;font-size:.66rem;
+    text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);
+    padding:.7rem .85rem;border-bottom:1px solid var(--line);
+    background:var(--surface-2);position:sticky;top:0;white-space:nowrap}
+  td{padding:.55rem .85rem;border-bottom:1px solid var(--line-soft);white-space:nowrap}
+  tr:last-child td{border-bottom:none}
+  .mono{font-family:ui-monospace,monospace}
+  .num{text-align:right}
+  .est{color:var(--warm)}
+  .tall{max-height:26rem;overflow-y:auto}
+  ul{margin:0 0 .85rem;padding-left:1.15rem}
+  li{margin-bottom:.4rem}
+  footer{color:var(--ink-faint);font-size:.8rem;border-top:1px solid var(--line-soft);
+    padding-top:1.25rem}
+  footer a{color:var(--water-bright)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="meta">Data quality report &middot; generated 2026-09-07 10:33 &middot; cc-renpho</div>
+  <h1>Renpho scale data: what arrived, and what it is worth</h1>
+  <p class="lede">A full pull of the Renpho Health account over the unofficial
+  cloud.renpho.com REST API, then a quality pass over what came back.</p>
+</header>
+
+<section class="verdict"><p><strong>Verdict.</strong> 6 of 36 readings carry a real impedance measurement, so 30 set(s) of body-fat, muscle and water figures are a formula over weight rather than a measurement. Coverage is 6.1% of the elapsed period. Use this for weight; do not use it for body composition, and do not read a trend into it.</p></section>
+
+<section>
+  <h2>At a glance</h2>
+  <div class="tiles">
+    <div class="tile"><span class="n">36</span><span class="k">Records retrieved</span></div>
+    <div class="tile warn"><span class="n">6</span><span class="k">With real impedance</span></div>
+    <div class="tile warn"><span class="n">6.1%</span><span class="k">Day coverage over 575 days</span></div>
+    <div class="tile"><span class="n">35</span><span class="k">Distinct weigh-in days</span></div>
+    <div class="tile warn"><span class="n">4</span><span class="k">Gaps over 30 days</span></div>
+    <div class="tile"><span class="n">81.3</span><span class="k">Latest weight, kg</span></div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>Weight over real time</h2>
+  <p class="lede" style="font-size:.93rem">Plotted on a true date axis, so the emptiness is
+  visible. The line joins readings less than 60 days apart only - drawing it across a long
+  gap would assert a trajectory nobody observed.</p>
+  <svg viewBox="0 0 920 300" role="img" aria-label="Weight over time"><line class="grid" x1="52" y1="231.9" x2="902" y2="231.9"/><text class="ax" x="43" y="235.9" text-anchor="end">79</text><line class="grid" x1="52" y1="177.4" x2="902" y2="177.4"/><text class="ax" x="43" y="181.4" text-anchor="end">80</text><line class="grid" x1="52" y1="122.9" x2="902" y2="122.9"/><text class="ax" x="43" y="126.9" text-anchor="end">81</text><line class="grid" x1="52" y1="68.4" x2="902" y2="68.4"/><text class="ax" x="43" y="72.4" text-anchor="end">82</text><line class="grid-v" x1="503.9" y1="18" x2="503.9" y2="266"/><text class="ax" x="503.9" y="286" text-anchor="middle">2025</text><path class="ln" d="M52.0,46.6 L53.5,63.0 L55.0,79.3 L56.4,68.4 L57.9,90.2 L59.4,95.7 L60.9,73.9 L62.3,106.6 L63.8,117.5 L65.2,101.1 L66.7,128.4 L68.2,139.3 L69.7,122.9 L71.2,144.7 L72.6,155.6 L74.1,133.8 L75.6,161.1 L77.1,172.0 L78.5,150.2 L80.0,177.4 L81.5,188.3 L83.0,166.5 L84.5,193.8 L85.9,204.7 L87.4,182.9 L88.9,210.1 L90.4,221.0 L91.9,199.2 L93.3,226.5 L94.8,237.4 L94.8,237.4 L143.6,144.7 L146.5,128.4"/><circle class="dot-measured" cx="52.0" cy="46.6" r="4"><title>2024-03-01 07:30 - 82.4 kg, 15.7% fat, impedance measured</title></circle><circle class="dot-est" cx="53.5" cy="63.0" r="3"><title>2024-03-02 07:30 - 82.1 kg, 15.5% fat, estimated from weight</title></circle><circle class="dot-est" cx="55.0" cy="79.3" r="3"><title>2024-03-03 07:30 - 81.8 kg, 15.3% fat, estimated from weight</title></circle><circle class="dot-est" cx="56.4" cy="68.4" r="3"><title>2024-03-04 07:30 - 82.0 kg, 15.4% fat, estimated from weight</title></circle><circle class="dot-est" cx="57.9" cy="90.2" r="3"><title>2024-03-05 07:30 - 81.6 kg, 15.2% fat, estimated from weight</title></circle><circle class="dot-est" cx="59.4" cy="95.7" r="3"><title>2024-03-06 07:30 - 81.5 kg, 15.1% fat, estimated from weight</title></circle><circle class="dot-est" cx="60.9" cy="73.9" r="3"><title>2024-03-07 07:30 - 81.9 kg, 15.4% fat, estimated from weight</title></circle><circle class="dot-est" cx="62.3" cy="106.6" r="3"><title>2024-03-08 07:30 - 81.3 kg, 15.0% fat, estimated from weight</title></circle><circle class="dot-est" cx="63.8" cy="117.5" r="3"><title>2024-03-09 07:30 - 81.1 kg, 14.9% fat, estimated from weight</title></circle><circle class="dot-est" cx="65.2" cy="101.1" r="3"><title>2024-03-10 07:30 - 81.4 kg, 15.1% fat, estimated from weight</title></circle><circle class="dot-measured" cx="66.7" cy="128.4" r="4"><title>2024-03-11 07:30 - 80.9 kg, 14.8% fat, impedance measured</title></circle><circle class="dot-est" cx="68.2" cy="139.3" r="3"><title>2024-03-12 07:30 - 80.7 kg, 14.6% fat, estimated from weight</title></circle><circle class="dot-est" cx="69.7" cy="122.9" r="3"><title>2024-03-13 07:30 - 81.0 kg, 14.8% fat, estimated from weight</title></circle><circle class="dot-est" cx="71.2" cy="144.7" r="3"><title>2024-03-14 07:30 - 80.6 kg, 14.6% fat, estimated from weight</title></circle><circle class="dot-est" cx="72.6" cy="155.6" r="3"><title>2024-03-15 07:30 - 80.4 kg, 14.4% fat, estimated from weight</title></circle><circle class="dot-est" cx="74.1" cy="133.8" r="3"><title>2024-03-16 07:30 - 80.8 kg, 14.7% fat, estimated from weight</title></circle><circle class="dot-est" cx="75.6" cy="161.1" r="3"><title>2024-03-17 07:30 - 80.3 kg, 14.4% fat, estimated from weight</title></circle><circle class="dot-est" cx="77.1" cy="172.0" r="3"><title>2024-03-18 07:30 - 80.1 kg, 14.3% fat, estimated from weight</title></circle><circle class="dot-est" cx="78.5" cy="150.2" r="3"><title>2024-03-19 07:30 - 80.5 kg, 14.5% fat, estimated from weight</title></circle><circle class="dot-est" cx="80.0" cy="177.4" r="3"><title>2024-03-20 07:30 - 80.0 kg, 14.2% fat, estimated from weight</title></circle><circle class="dot-measured" cx="81.5" cy="188.3" r="4"><title>2024-03-21 07:30 - 79.8 kg, 14.1% fat, impedance measured</title></circle><circle class="dot-est" cx="83.0" cy="166.5" r="3"><title>2024-03-22 07:30 - 80.2 kg, 14.3% fat, estimated from weight</title></circle><circle class="dot-est" cx="84.5" cy="193.8" r="3"><title>2024-03-23 07:30 - 79.7 kg, 14.0% fat, estimated from weight</title></circle><circle class="dot-est" cx="85.9" cy="204.7" r="3"><title>2024-03-24 07:30 - 79.5 kg, 13.9% fat, estimated from weight</title></circle><circle class="dot-est" cx="87.4" cy="182.9" r="3"><title>2024-03-25 07:30 - 79.9 kg, 14.1% fat, estimated from weight</title></circle><circle class="dot-est" cx="88.9" cy="210.1" r="3"><title>2024-03-26 07:30 - 79.4 kg, 13.8% fat, estimated from weight</title></circle><circle class="dot-est" cx="90.4" cy="221.0" r="3"><title>2024-03-27 07:30 - 79.2 kg, 13.7% fat, estimated from weight</title></circle><circle class="dot-est" cx="91.9" cy="199.2" r="3"><title>2024-03-28 07:30 - 79.6 kg, 14.0% fat, estimated from weight</title></circle><circle class="dot-est" cx="93.3" cy="226.5" r="3"><title>2024-03-29 07:30 - 79.1 kg, 13.6% fat, estimated from weight</title></circle><circle class="dot-est" cx="94.8" cy="237.4" r="3"><title>2024-03-30 07:30 - 78.9 kg, 13.5% fat, estimated from weight</title></circle><circle class="dot-est" cx="94.8" cy="237.4" r="3"><title>2024-03-30 07:30 - 78.9 kg, 13.5% fat, estimated from weight</title></circle><circle class="dot-measured" cx="143.6" cy="144.7" r="4"><title>2024-05-02 07:10 - 80.6 kg, 14.6% fat, impedance measured</title></circle><circle class="dot-measured" cx="146.5" cy="128.4" r="4"><title>2024-05-04 07:22 - 80.9 kg, 14.8% fat, impedance measured</title></circle><circle class="dot-est" cx="529.5" cy="63.0" r="3"><title>2025-01-18 08:05 - 82.1 kg, 15.5% fat, estimated from weight</title></circle><circle class="dot-est" cx="649.3" cy="84.8" r="3"><title>2025-04-09 09:15 - 81.7 kg, 15.3% fat, estimated from weight</title></circle><circle class="dot-measured" cx="902.0" cy="106.6" r="4"><title>2025-09-27 07:44 - 81.3 kg, 15.0% fat, impedance measured</title></circle></svg>
+  <div class="legend">
+    <span><i class="sw m"></i> impedance measured (6)</span>
+    <span><i class="sw e"></i> composition estimated from weight (30)</span>
+  </div>
+</section>
+
+<section class="card">
+  <h2>The densest run of readings</h2>
+  <p class="lede" style="font-size:.93rem">31 of the 36 readings sit in this stretch, 2024-03-01 to 2024-03-30.
+  Zoomed out it is a smear at one edge of the chart above; here it is the only part where
+  consecutive points are close enough together to read as a trend.</p>
+  <svg viewBox="0 0 920 260" role="img" aria-label="The densest run of readings"><line class="grid" x1="52" y1="197.4" x2="902" y2="197.4"/><text class="ax" x="43" y="201.4" text-anchor="end">79</text><line class="grid" x1="52" y1="151.7" x2="902" y2="151.7"/><text class="ax" x="43" y="155.7" text-anchor="end">80</text><line class="grid" x1="52" y1="106.0" x2="902" y2="106.0"/><text class="ax" x="43" y="110.0" text-anchor="end">81</text><line class="grid" x1="52" y1="60.3" x2="902" y2="60.3"/><text class="ax" x="43" y="64.3" text-anchor="end">82</text><line class="grid-v" x1="248.3" y1="18" x2="248.3" y2="226"/><text class="ax" x="248.3" y="246" text-anchor="middle">Mar 08</text><line class="grid-v" x1="452.5" y1="18" x2="452.5" y2="226"/><text class="ax" x="452.5" y="246" text-anchor="middle">Mar 15</text><line class="grid-v" x1="658.0" y1="18" x2="658.0" y2="226"/><text class="ax" x="658.0" y="246" text-anchor="middle">Mar 22</text><line class="grid-v" x1="863.5" y1="18" x2="863.5" y2="226"/><text class="ax" x="863.5" y="246" text-anchor="middle">Mar 29</text><path class="ln" d="M52.0,42.0 L81.4,55.7 L110.7,69.4 L140.1,60.3 L169.4,78.6 L198.8,83.1 L228.1,64.9 L257.5,92.3 L286.8,101.4 L314.9,87.7 L344.3,110.6 L373.6,119.7 L403.0,106.0 L432.4,124.3 L461.7,133.4 L491.1,115.1 L520.4,138.0 L549.8,147.1 L579.1,128.9 L608.5,151.7 L637.8,160.9 L667.2,142.6 L696.5,165.4 L725.9,174.6 L755.2,156.3 L784.6,179.1 L813.9,188.3 L843.3,170.0 L872.6,192.9 L902.0,202.0 L902.0,202.0"/><circle class="dot-est" cx="52.0" cy="42.0" r="3"><title>2024-03-01 07:30 - 82.4 kg</title></circle><circle class="dot-est" cx="81.4" cy="55.7" r="3"><title>2024-03-02 07:30 - 82.1 kg</title></circle><circle class="dot-est" cx="110.7" cy="69.4" r="3"><title>2024-03-03 07:30 - 81.8 kg</title></circle><circle class="dot-est" cx="140.1" cy="60.3" r="3"><title>2024-03-04 07:30 - 82.0 kg</title></circle><circle class="dot-est" cx="169.4" cy="78.6" r="3"><title>2024-03-05 07:30 - 81.6 kg</title></circle><circle class="dot-est" cx="198.8" cy="83.1" r="3"><title>2024-03-06 07:30 - 81.5 kg</title></circle><circle class="dot-est" cx="228.1" cy="64.9" r="3"><title>2024-03-07 07:30 - 81.9 kg</title></circle><circle class="dot-est" cx="257.5" cy="92.3" r="3"><title>2024-03-08 07:30 - 81.3 kg</title></circle><circle class="dot-est" cx="286.8" cy="101.4" r="3"><title>2024-03-09 07:30 - 81.1 kg</title></circle><circle class="dot-est" cx="314.9" cy="87.7" r="3"><title>2024-03-10 07:30 - 81.4 kg</title></circle><circle class="dot-est" cx="344.3" cy="110.6" r="3"><title>2024-03-11 07:30 - 80.9 kg</title></circle><circle class="dot-est" cx="373.6" cy="119.7" r="3"><title>2024-03-12 07:30 - 80.7 kg</title></circle><circle class="dot-est" cx="403.0" cy="106.0" r="3"><title>2024-03-13 07:30 - 81.0 kg</title></circle><circle class="dot-est" cx="432.4" cy="124.3" r="3"><title>2024-03-14 07:30 - 80.6 kg</title></circle><circle class="dot-est" cx="461.7" cy="133.4" r="3"><title>2024-03-15 07:30 - 80.4 kg</title></circle><circle class="dot-est" cx="491.1" cy="115.1" r="3"><title>2024-03-16 07:30 - 80.8 kg</title></circle><circle class="dot-est" cx="520.4" cy="138.0" r="3"><title>2024-03-17 07:30 - 80.3 kg</title></circle><circle class="dot-est" cx="549.8" cy="147.1" r="3"><title>2024-03-18 07:30 - 80.1 kg</title></circle><circle class="dot-est" cx="579.1" cy="128.9" r="3"><title>2024-03-19 07:30 - 80.5 kg</title></circle><circle class="dot-est" cx="608.5" cy="151.7" r="3"><title>2024-03-20 07:30 - 80.0 kg</title></circle><circle class="dot-est" cx="637.8" cy="160.9" r="3"><title>2024-03-21 07:30 - 79.8 kg</title></circle><circle class="dot-est" cx="667.2" cy="142.6" r="3"><title>2024-03-22 07:30 - 80.2 kg</title></circle><circle class="dot-est" cx="696.5" cy="165.4" r="3"><title>2024-03-23 07:30 - 79.7 kg</title></circle><circle class="dot-est" cx="725.9" cy="174.6" r="3"><title>2024-03-24 07:30 - 79.5 kg</title></circle><circle class="dot-est" cx="755.2" cy="156.3" r="3"><title>2024-03-25 07:30 - 79.9 kg</title></circle><circle class="dot-est" cx="784.6" cy="179.1" r="3"><title>2024-03-26 07:30 - 79.4 kg</title></circle><circle class="dot-est" cx="813.9" cy="188.3" r="3"><title>2024-03-27 07:30 - 79.2 kg</title></circle><circle class="dot-est" cx="843.3" cy="170.0" r="3"><title>2024-03-28 07:30 - 79.6 kg</title></circle><circle class="dot-est" cx="872.6" cy="192.9" r="3"><title>2024-03-29 07:30 - 79.1 kg</title></circle><circle class="dot-est" cx="902.0" cy="202.0" r="3"><title>2024-03-30 07:30 - 78.9 kg</title></circle><circle class="dot-est" cx="902.0" cy="202.0" r="3"><title>2024-03-30 07:30 - 78.9 kg</title></circle></svg>
+</section>
+<section class="card">
+  <h2>Readings per month</h2>
+  <p class="lede" style="font-size:.93rem">Flat grey means no weigh-in that month.</p>
+  <svg viewBox="0 0 920 74" role="img" aria-label="Readings per month"><line class="grid" x1="52" y1="48" x2="902" y2="48"/><rect class="cov" x="52.7" y="14.0" width="43.3" height="34.0"><title>2024-03: 31 readings</title></rect><text class="ax" x="52.0" y="66" text-anchor="start">2024</text><rect class="cov-none" x="97.4" y="45.0" width="43.3" height="3"><title>2024-04: no readings</title></rect><rect class="cov" x="142.2" y="44.0" width="43.3" height="4.0"><title>2024-05: 2 readings</title></rect><rect class="cov-none" x="186.9" y="45.0" width="43.3" height="3"><title>2024-06: no readings</title></rect><rect class="cov-none" x="231.6" y="45.0" width="43.3" height="3"><title>2024-07: no readings</title></rect><rect class="cov-none" x="276.4" y="45.0" width="43.3" height="3"><title>2024-08: no readings</title></rect><rect class="cov-none" x="321.1" y="45.0" width="43.3" height="3"><title>2024-09: no readings</title></rect><rect class="cov-none" x="365.9" y="45.0" width="43.3" height="3"><title>2024-10: no readings</title></rect><rect class="cov-none" x="410.6" y="45.0" width="43.3" height="3"><title>2024-11: no readings</title></rect><rect class="cov-none" x="455.3" y="45.0" width="43.3" height="3"><title>2024-12: no readings</title></rect><rect class="cov" x="500.1" y="44.0" width="43.3" height="4.0"><title>2025-01: 1 reading</title></rect><text class="ax" x="499.4" y="66" text-anchor="start">2025</text><rect class="cov-none" x="544.8" y="45.0" width="43.3" height="3"><title>2025-02: no readings</title></rect><rect class="cov-none" x="589.5" y="45.0" width="43.3" height="3"><title>2025-03: no readings</title></rect><rect class="cov" x="634.3" y="44.0" width="43.3" height="4.0"><title>2025-04: 1 reading</title></rect><rect class="cov-none" x="679.0" y="45.0" width="43.3" height="3"><title>2025-05: no readings</title></rect><rect class="cov-none" x="723.8" y="45.0" width="43.3" height="3"><title>2025-06: no readings</title></rect><rect class="cov-none" x="768.5" y="45.0" width="43.3" height="3"><title>2025-07: no readings</title></rect><rect class="cov-none" x="813.2" y="45.0" width="43.3" height="3"><title>2025-08: no readings</title></rect><rect class="cov" x="858.0" y="44.0" width="43.3" height="4.0"><title>2025-09: 1 reading</title></rect></svg>
+</section>
+
+<section>
+  <h2>Findings</h2>
+  <p class="lede">2 high, 2 medium, 3 low.</p>
+  <div class="findings"><article class="finding sev-high"><div class="sev-tag">HIGH &middot; composition-not-measured</div><h3>Body-composition figures were not measured on most records</h3><p class="obs">30 of 36 records (83%) carry resistance = 100, the placeholder the scale writes when it takes no impedance reading. Across them there are 28 distinct weights and 0 case(s) where the same weight yielded different composition.</p><p class="why"><span class="lbl">Why it matters</span> Body fat, muscle, water, protein and bone on those records are a formula over weight, height, age and sex - not a measurement. Two people of the same weight, height, age and sex would get identical figures. Nothing in the API response marks them as derived. Treat them as a restatement of weight.</p></article><article class="finding sev-high"><div class="sev-tag">HIGH &middot; too-sparse-for-trend</div><h3>The record is too sparse to support a trend</h3><p class="obs">36 readings on 35 distinct days across 575 days - 6.09% coverage. The densest run holds 31 of them (86%).</p><p class="why"><span class="lbl">Why it matters</span> A trend line over data this sparse describes where the sampling happened to land, not what the body did. Densely sampled stretches can be read; isolated points cannot be joined to them.</p></article><article class="finding sev-medium"><div class="sev-tag">MEDIUM &middot; timestamp-field-offset</div><h3>The timeStamp field is 8 hours off UTC</h3><p class="obs">On 36 of 36 records, createdAt minus utcfromtimestamp(timeStamp) is 8 hours. Renpho&#x27;s backend stamps the epoch in UTC+8, not UTC.</p><p class="why"><span class="lbl">Why it matters</span> Code that reads the raw epoch places every weigh-in 8 hours early, which moves some of them onto the previous day. Use localCreatedAt (local wall clock) or createdAt (true UTC) instead.</p></article><article class="finding sev-medium"><div class="sev-tag">MEDIUM &middot; backfilled-records</div><h3>Some readings were backfilled, not recorded live</h3><p class="obs">2025-04-09 (81.7 kg) arrived at 2025-09-27 12:44:03</p><p class="why"><span class="lbl">Why it matters</span> These reached the server long after the date they claim, so their timing rests entirely on the app rather than on when the reading arrived. Treat their dates as asserted, not corroborated.</p></article><article class="finding sev-low"><div class="sev-tag">LOW &middot; repeat-weigh-ins</div><h3>Some weigh-ins are repeats of the same session</h3><p class="obs">1 pair(s) of readings less than 10 minutes apart - someone stepping on the scale twice, not two observations.</p><p class="why"><span class="lbl">Why it matters</span> They inflate the reading count without adding information. Count distinct days, not records, when reporting how much data there is.</p></article><article class="finding sev-low"><div class="sev-tag">LOW &middot; inconsistent-timezone-label</div><h3>The timezone label is inconsistent</h3><p class="obs">Labels present: -5:00 (22), EST (13), -4:00 (1)</p><p class="why"><span class="lbl">Why it matters</span> The label is written by whichever app version uploaded the record, and mixes abbreviations with numeric offsets. It is not a reliable zone identifier - the local and UTC timestamps are.</p></article><article class="finding sev-low"><div class="sev-tag">LOW &middot; empty-fields</div><h3>A large part of the payload carries no data</h3><p class="obs">18 of 48 fields are empty on every record. 0 field(s) are missing from some records entirely.</p><p class="why"><span class="lbl">Why it matters</span> These reflect hardware the scale does not have and health services that are not connected. They are schema, not data - do not model them as nullable measurements.</p></article></div>
+</section>
+
+<section class="card">
+  <h2>The gaps</h2>
+  <div class="scroll"><table>
+    <thead><tr><th>Last reading</th><th>Next reading</th><th class="num">Days</th></tr></thead>
+    <tbody><tr><td class="mono">2024-03-30</td><td class="mono">2024-05-02</td><td class="mono num">32</td></tr><tr><td class="mono">2024-05-04</td><td class="mono">2025-01-18</td><td class="mono num">259</td></tr><tr><td class="mono">2025-01-18</td><td class="mono">2025-04-09</td><td class="mono num">81</td></tr><tr><td class="mono">2025-04-09</td><td class="mono">2025-09-27</td><td class="mono num">170</td></tr></tbody>
+  </table></div>
+</section>
+
+<section class="card">
+  <h2>Profile constants every number leans on</h2>
+  <p>The derived figures are computed from these. If one is wrong in the app, it is wrong in
+  every reading ever taken.</p>
+  <ul><li><b>Height 175.0 cm.</b> BMI is weight over height squared, so every BMI in this export depends on this one number being right in the app.</li><li><b>Birthday 1980-06-15.</b> Feeds BMR and body age.</li><li><b>1 device(s)</b> on the account: A1:B2:C3:D4:E5:F6.</li><li><b>Weight is stored in kilograms</b> regardless of the unit the app displays.</li></ul>
+</section>
+
+<section>
+  <h2>All 36 readings</h2>
+  <div class="scroll tall"><table>
+    <thead><tr><th>Local time</th><th class="num">Weight kg</th><th class="num">BMI</th>
+    <th class="num">Fat %</th><th class="num">Muscle %</th><th class="num">Water %</th>
+    <th class="num">BMR</th><th>Composition</th></tr></thead>
+    <tbody><tr><td class="mono">2025-09-27 07:44</td><td class="mono num">81.3</td><td class="mono num">26.5</td><td class="mono num">15.0</td><td class="mono num">57.7</td><td class="mono num">60.7</td><td class="mono num">2182</td><td>measured</td></tr><tr><td class="mono">2025-04-09 09:15</td><td class="mono num">81.7</td><td class="mono num">26.7</td><td class="mono num">15.3</td><td class="mono num">57.6</td><td class="mono num">60.5</td><td class="mono num">2186</td><td><span class="est">estimated</span></td></tr><tr><td class="mono">2025-01-18 08:05</td><td class="mono num">82.1</td><td class="mono num">26.8</td><td class="mono num">15.5</td><td class="mono num">57.5</td><td class="mono num">60.4</td><td class="mono num">2189</td><td><span class="est">estimated</span></td></tr><tr><td class="mono">2024-05-04 07:22</td><td class="mono num">80.9</td><td class="mono num">26.4</td><td class="mono num">14.8</td><td class="mono num">57.8</td><td class="mono num">60.8</td><td class="mono num">2179</td><td>measured</td></tr><tr><td class="mono">2024-05-02 07:10</td><td class="mono num">80.6</td><td class="mono num">26.3</td><td class="mono num">14.6</td><td class="mono num">57.9</td><td class="mono num">60.9</td><td class="mono num">2177</td><td>measured</td></tr><tr><td class="mono">2024-03-30 07:30</td><td class="mono num">78.9</td><td class="mono num">25.8</td><td class="mono num">13.5</td><td class="mono num">58.3</td><td class="mono num">61.6</td><td class="mono num">2162</td><td><span class="est">estimated</span></td></tr><tr><td class="mono">2024-03-30 07:30</td><td class="mono num">78.9</td><td class="mono num">25.8</td><td class="mono num">13.5</td><td class="mono num">58.3</td><td class="mono num">61.6</td><td class="mono num">2162</td><td><span class="est">estimated</span></td></tr><tr><td class="mono">2024-03-29 07:30</td><td class="mono num">79.1</td><td class="mono num">25.8</td><td class="mono num">13.6</td><td class="mono num">58.3</td><td class="mono num">61.6</td><td class="mono num">2164</td><td><span class="est">estimated</span></td></tr><tr><td class="mono">2024-03-28 07:30</td><td class="mono num">79.6</td><td class="mono num">26.0</td><td class="mono num">14.0</td><td class="mono num">58.1</td><td class="mono num">61.3</td><td class="mono num">2168</td><td><span class="est">estimated</span></td></tr><tr><td class="mono">2024-03-27 07:30</td><td class="mono num">79.2</td><td class="mono num">25.9</td><td class="mono num">13.7</td><td class="mono num">58.2</td><td class="mono num">61.5</td><td class="mono num">2165</td><td><span class="est">estimated</span></td></tr><tr><td class="mono">2024-03-26 07:30</td><td class="mono num">79.4</td><td class="mono num">25.9</td><td class="mono num">13.8</td><td class="mono num">58.2</td><td class="mono num">61.4</td><td class="mono num">2166</td><td><span class="est">estimated</span></td></tr><tr><td class="mono">2024-03-25 07:30</td><td class="mono num">79.9</td><td class="mono num">26.1</td><td class="mono num">14.1</td><td class="mono num">58.1</td><td class="mono num">61.3</td><td class="mono num">2171</td><td><span class="est">estimated</span></td></tr><tr><td class="mono">2024-03-24 07:30</td><td class="mono num">79.5</td><td class="mono num">26.0</td><td class="mono num">13.9</td><td class="mono num">58.2</td><td class="mono num">61.4</td><td class="mono num">2167</td><td><span class="est">estimated</span></td></tr><tr><td class="mono">2024-03-23 07:30</td><td class="mono num">79.7</td><td class="mono num">26.0</td><td class="mono num">14.0</td><td class="mono num">58.1</td><td class="mono num">61.3</td><td class="mono num">2169</td><td><span class="est">estimated</span></td></tr><tr><td class="mono">2024-03-22 07:30</td><td class="mono num">80.2</td><td class="mono num">26.2</td><td class="mono num">14.3</td><td class="mono num">58.0</td><td class="mono num">61.1</td><td class="mono num">2173</td><td><span class="est">estimated</span></td></tr><tr><td class="mono">2024-03-21 07:30</td><td class="mono num">79.8</td><td class="mono num">26.1</td><td class="mono num">14.1</td><td class="mono num">58.1</td><td class="mono num">61.3</td><td class="mono num">2170</td><td>measured</td></tr><tr><td class="mono">2024-03-20 07:30</td><td class="mono num">80.0</td><td class="mono num">26.1</td><td class="mono num">14.2</td><td class="mono num">58.0</td><td class="mono num">61.2</td><td class="mono num">2172</td><td><span class="est">estimated</span></td></tr><tr><td class="mono">2024-03-19 07:30</td><td class="mono num">80.5</td><td class="mono num">26.3</td><td class="mono num">14.5</td><td class="mono num">57.9</td><td class="mono num">61.0</td><td class="mono num">2176</td><td><span class="est">estimated</span></td></tr><tr><td class="mono">2024-03-18 07:30</td><td class="mono num">80.1</td><td class="mono num">26.2</td><td class="mono num">14.3</td><td class="mono num">58.0</td><td class="mono num">61.1</td><td class="mono num">2172</td><td><span class="est">estimated</span></td></tr><tr><td class="mono">2024-03-17 07:30</td><td class="mono num">80.3</td><td class="mono num">26.2</td><td class="mono num">14.4</td><td class="mono num">58.0</td><td class="mono num">61.1</td><td class="mono num">2174</td><td><span class="est">estimated</span></td></tr><tr><td class="mono">2024-03-16 07:30</td><td class="mono num">80.8</td><td class="mono num">26.4</td><td class="mono num">14.7</td><td class="mono num">57.8</td><td class="mono num">60.9</td><td class="mono num">2178</td><td><span class="est">estimated</span></td></tr><tr><td class="mono">2024-03-15 07:30</td><td class="mono num">80.4</td><td class="mono num">26.3</td><td class="mono num">14.4</td><td class="mono num">58.0</td><td class="mono num">61.1</td><td class="mono num">2175</td><td><span class="est">estimated</span></td></tr><tr><td class="mono">2024-03-14 07:30</td><td class="mono num">80.6</td><td class="mono num">26.3</td><td class="mono num">14.6</td><td class="mono num">57.9</td><td class="mono num">60.9</td><td class="mono num">2177</td><td><span class="est">estimated</span></td></tr><tr><td class="mono">2024-03-13 07:30</td><td class="mono num">81.0</td><td class="mono num">26.4</td><td class="mono num">14.8</td><td class="mono num">57.8</td><td class="mono num">60.8</td><td class="mono num">2180</td><td><span class="est">estimated</span></td></tr><tr><td class="mono">2024-03-12 07:30</td><td class="mono num">80.7</td><td class="mono num">26.4</td><td class="mono num">14.6</td><td class="mono num">57.9</td><td class="mono num">60.9</td><td class="mono num">2177</td><td><span class="est">estimated</span></td></tr><tr><td class="mono">2024-03-11 07:30</td><td class="mono num">80.9</td><td class="mono num">26.4</td><td class="mono num">14.8</td><td class="mono num">57.8</td><td class="mono num">60.8</td><td class="mono num">2179</td><td>measured</td></tr><tr><td class="mono">2024-03-10 07:30</td><td class="mono num">81.4</td><td class="mono num">26.6</td><td class="mono num">15.1</td><td class="mono num">57.7</td><td class="mono num">60.6</td><td class="mono num">2183</td><td><span class="est">estimated</span></td></tr><tr><td class="mono">2024-03-09 07:30</td><td class="mono num">81.1</td><td class="mono num">26.5</td><td class="mono num">14.9</td><td class="mono num">57.7</td><td class="mono num">60.8</td><td class="mono num">2181</td><td><span class="est">estimated</span></td></tr><tr><td class="mono">2024-03-08 07:30</td><td class="mono num">81.3</td><td class="mono num">26.5</td><td class="mono num">15.0</td><td class="mono num">57.7</td><td class="mono num">60.7</td><td class="mono num">2182</td><td><span class="est">estimated</span></td></tr><tr><td class="mono">2024-03-07 07:30</td><td class="mono num">81.9</td><td class="mono num">26.7</td><td class="mono num">15.4</td><td class="mono num">57.5</td><td class="mono num">60.5</td><td class="mono num">2187</td><td><span class="est">estimated</span></td></tr><tr><td class="mono">2024-03-06 07:30</td><td class="mono num">81.5</td><td class="mono num">26.6</td><td class="mono num">15.1</td><td class="mono num">57.7</td><td class="mono num">60.6</td><td class="mono num">2184</td><td><span class="est">estimated</span></td></tr><tr><td class="mono">2024-03-05 07:30</td><td class="mono num">81.6</td><td class="mono num">26.6</td><td class="mono num">15.2</td><td class="mono num">57.6</td><td class="mono num">60.6</td><td class="mono num">2185</td><td><span class="est">estimated</span></td></tr><tr><td class="mono">2024-03-04 07:30</td><td class="mono num">82.0</td><td class="mono num">26.8</td><td class="mono num">15.4</td><td class="mono num">57.5</td><td class="mono num">60.5</td><td class="mono num">2188</td><td><span class="est">estimated</span></td></tr><tr><td class="mono">2024-03-03 07:30</td><td class="mono num">81.8</td><td class="mono num">26.7</td><td class="mono num">15.3</td><td class="mono num">57.6</td><td class="mono num">60.5</td><td class="mono num">2187</td><td><span class="est">estimated</span></td></tr><tr><td class="mono">2024-03-02 07:30</td><td class="mono num">82.1</td><td class="mono num">26.8</td><td class="mono num">15.5</td><td class="mono num">57.5</td><td class="mono num">60.4</td><td class="mono num">2189</td><td><span class="est">estimated</span></td></tr><tr><td class="mono">2024-03-01 07:30</td><td class="mono num">82.4</td><td class="mono num">26.9</td><td class="mono num">15.7</td><td class="mono num">57.4</td><td class="mono num">60.3</td><td class="mono num">2192</td><td>measured</td></tr></tbody>
+  </table></div>
+</section>
+
+<footer>
+  <p>Generated by <a href="https://github.com/thefrederiksen/cc-renpho">cc-renpho</a>. Renpho
+  publishes no public API; this reads the same private backend the Renpho Health app uses. It
+  works today and can break without notice.</p>
+</footer>
+
+</div>
+</body>
+</html>

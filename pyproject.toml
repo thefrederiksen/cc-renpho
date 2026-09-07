@@ -9,7 +9,8 @@ description = "Download and quality-check a Renpho smart scale history. Tells yo
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
-authors = [{ name = "Soren Frederiksen", email = "soren@centerconsulting.com" }]
+authors = [{ name = "Center Consulting", email = "soren@centerconsulting.com" }]
+maintainers = [{ name = "Soren Frederiksen", email = "soren@centerconsulting.com" }]
 keywords = ["renpho", "smart-scale", "health", "data-quality", "body-composition", "agent"]
 classifiers = [
   "Development Status :: 4 - Beta",
@@ -30,6 +31,7 @@ dev = ["pytest>=8"]
 Homepage = "https://github.com/thefrederiksen/cc-renpho"
 Source = "https://github.com/thefrederiksen/cc-renpho"
 Issues = "https://github.com/thefrederiksen/cc-renpho/issues"
+Publisher = "https://www.centerconsulting.com"
 
 [project.scripts]
 cc-renpho = "cc_renpho.cli:main"

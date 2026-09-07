@@ -30,8 +30,12 @@ day. Use `localCreatedAt` or `createdAt`.
 
 ## Install
 
+Not on PyPI yet — install from source:
+
 ```bash
-pip install cc-renpho
+git clone https://github.com/thefrederiksen/cc-renpho
+cd cc-renpho
+pip install .
 ```
 
 Credentials come from the environment (or a file — see below). The password is your plaintext

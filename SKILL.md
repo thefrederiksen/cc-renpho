@@ -16,8 +16,11 @@ Read [AGENTS.md](AGENTS.md) for the exit-code contract. The short version: every
 
 ## Setup
 
+Not on PyPI yet — install from source:
+
 ```bash
-pip install cc-renpho
+git clone https://github.com/thefrederiksen/cc-renpho
+cd cc-renpho && pip install .
 export RENPHO_EMAIL=... RENPHO_PASSWORD=...
 ```
 
